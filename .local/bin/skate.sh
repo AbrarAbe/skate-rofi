@@ -59,6 +59,7 @@ fi
 
 r_override="window{location:${x_pos} ${y_pos};anchor:${x_pos} ${y_pos};x-offset:${x_off}px;y-offset:${y_off}px;border:${hypr_width}px;border-radius:${wind_border}px;} wallbox{border-radius:${elem_border}px;} element{border-radius:${elem_border}px;}"
 pass_override="window{height:6.6em;width:25%;location:${x_pos} ${y_pos};anchor:${x_pos} ${y_pos};x-offset:${x_off}px;y-offset:${y_off}px;border:${hypr_width}px;border-radius:${wind_border}px;} mainbox{children: [ "wallbox" ];} wallbox{expand:true;border-radius:${elem_border}px;} element{border-radius:${elem_border}px;} listbox{enabled:false;} element{enabled:false;}"
+value_override="window{width:50%;}"
 
 # Password prompt using Rofi
 entered_password=$(echo "" | rofi -dmenu -password -theme-str "entry { placeholder: \"Enter password\";}" -theme-str "${r_scale}" -theme-str "${pass_override}" -config "${roconf}")
@@ -73,7 +74,7 @@ fi
 
 # Show main menu if no arguments are passed
 if [ $# -eq 0 ]; then
-main_action=$(echo -e "Set\\nGet\\nList\\nList Databases" | rofi -dmenu -theme-str "entry { placeholder: \"Skate - Choose action...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
+main_action=$(echo -e "Store a key\\nGet a key\\nList keys\\nList databases" | rofi -dmenu -theme-str "entry { placeholder: \"Skate - Choose action...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
 else
     # Default action if an argument is passed (e.g., skate set key value)
     # Note: This assumes the first argument is the command and rest are arguments
@@ -96,10 +97,10 @@ fi
 case "${main_action}" in
 "Store a key")
     # Prompt for key
-    key=$(echo "" | rofi -dmenu -theme-str "entry { placeholder: \"Enter key...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
+    key=$(echo "" | rofi -dmenu -theme-str "entry { placeholder: \"Enter key...\";}" -theme-str "${r_scale}" -theme-str "${pass_override}" -config "${roconf}")
     if [ -n "$key" ]; then
         # Prompt for value (allow multi-line input if needed, Rofi handles this)
-        value=$(echo "" | rofi -dmenu -theme-str "entry { placeholder: \"Enter value...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
+        value=$(echo "" | rofi -dmenu -theme-str "entry { placeholder: \"Enter value...\";}" -theme-str "${r_scale}" -theme-str "${pass_override}" -theme-str "${value_override}" -config "${roconf}")
         if [ -n "$value" ]; then
             skate set "$key" "$value"
             notify-send "Key '$key' set."
@@ -119,7 +120,7 @@ case "${main_action}" in
         notify-send "Value for key '$selected_key' copied to clipboard."
     fi
 ;;
-"List all key-value pairs")
+"List keys")
     # List all key-value pairs
         skate_list_output=$(skate list)
     if [ -n "$skate_list_output" ]; then
@@ -128,7 +129,7 @@ case "${main_action}" in
         notify-send "Skate is empty."
     fi
     ;;
-"List Databases")
+"List databases")
     # List available databases
     skate_db_list_output=$(skate list-dbs)
     if [ -n "$skate_db_list_output" ]; then
