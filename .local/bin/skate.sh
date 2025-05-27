@@ -2,8 +2,10 @@
 
 # Set variables
 # Path to the GPG encrypted password file
+scrDir=$(dirname "$(realpath "$0")")
+source "$scrDir/globalcontrol.sh"
 SKATE_PASSWORD_FILE="your_gpg_encrypted_password.gpg"
-roconf="${HOME}/.config/rofi/skate.rasi"
+roconf="${confDir}/rofi/skate.rasi"
 
 # Decrypt the password from the GPG file
 # Use --batch and --no-tty to prevent gpg from trying to prompt for passphrase
@@ -12,7 +14,7 @@ if [ ! -f "$SKATE_PASSWORD_FILE" ]; then
     notify-send "Skate" "Error: GPG password file not found at $SKATE_PASSWORD_FILE."
     exit 1
 fi
-decrypted_password=$(gpg --quiet --batch --no-tty --decrypt "$SKATE_PASSWORD_FILE" 2>/dev/null)
+decrypted_password=$(gpg --quiet --batch --no-tty --decrypt "$SKATE_PASSWORD_FILE" 2>/dev/null | tr -d '[:space:]')
 
 # Check if decryption was successful
 if [ -z "$decrypted_password" ]; then
@@ -20,15 +22,10 @@ if [ -z "$decrypted_password" ]; then
     exit 1
 fi
 
-# Set default values for Rofi and Hyprland variables
-rofiScale=10
-hypr_border=2
-hypr_width=3
-
 # Set rofi scaling
 [[ "${rofiScale}" =~ ^[0-9]+$ ]] || rofiScale=10
 r_scale="configuration {font: \"JetBrainsMono Nerd Font 9\";}"
-wind_border=$((hypr_border * 3))
+wind_border=$((hypr_border * 3 / 2))
 elem_border=$([ $hypr_border -eq 0 ] && echo "5" || echo $hypr_border)
 
 # Evaluate spawn position
@@ -58,19 +55,23 @@ else
 fi
 
 r_override="window{location:${x_pos} ${y_pos};anchor:${x_pos} ${y_pos};x-offset:${x_off}px;y-offset:${y_off}px;border:${hypr_width}px;border-radius:${wind_border}px;} wallbox{border-radius:${elem_border}px;} element{border-radius:${elem_border}px;}"
+pass_override="window{height:6.6em;width:25%;location:${x_pos} ${y_pos};anchor:${x_pos} ${y_pos};x-offset:${x_off}px;y-offset:${y_off}px;border:${hypr_width}px;border-radius:${wind_border}px;} mainbox{children: [ "wallbox" ];} wallbox{expand:true;border-radius:${elem_border}px;} element{border-radius:${elem_border}px;} listbox{enabled:false;} element{enabled:false;}"
+value_override="window{width:50%;}"
 
 # Password prompt using Rofi
-entered_password=$(echo "" | rofi -dmenu -password -theme-str "entry { placeholder: \"Enter password\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
+entered_password=$(echo "" | rofi -dmenu -password -theme-str "entry { placeholder: \"Enter password\";}" -theme-str "${r_scale}" -theme-str "${pass_override}" -config "${roconf}")
 
 # Check if password is correct
-if [ "$entered_password" != "$decrypted_password" ]; then
-    notify-send "Skate" "Incorrect password."
+if [ -z "$entered_password" ]; then
+    exit 0 # Script was likely cancelled
+elif [ "$entered_password" != "$decrypted_password" ]; then
+    notify-send "skate-rofi" "Incorrect password."
     exit 1
 fi
 
 # Show main menu if no arguments are passed
 if [ $# -eq 0 ]; then
-main_action=$(echo -e "Set\\nGet\\nList\\nList Databases" | rofi -dmenu -theme-str "entry { placeholder: \"Skate - Choose action...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
+main_action=$(echo -e "Store a key\\nGet a key\\nList keys\\nList databases" | rofi -dmenu -theme-str "entry { placeholder: \"Skate - Choose action...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
 else
     # Default action if an argument is passed (e.g., skate set key value)
     # Note: This assumes the first argument is the command and rest are arguments
@@ -91,12 +92,12 @@ else
 fi
 
 case "${main_action}" in
-"Set")
+"Store a key")
     # Prompt for key
-    key=$(echo "" | rofi -dmenu -theme-str "entry { placeholder: \"Enter key...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
+    key=$(echo "" | rofi -dmenu -theme-str "entry { placeholder: \"Enter key...\";}" -theme-str "${r_scale}" -theme-str "${pass_override}" -config "${roconf}")
     if [ -n "$key" ]; then
         # Prompt for value (allow multi-line input if needed, Rofi handles this)
-        value=$(echo "" | rofi -dmenu -theme-str "entry { placeholder: \"Enter value...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
+        value=$(echo "" | rofi -dmenu -theme-str "entry { placeholder: \"Enter value...\";}" -theme-str "${r_scale}" -theme-str "${pass_override}" -theme-str "${value_override}" -config "${roconf}")
         if [ -n "$value" ]; then
             skate set "$key" "$value"
             notify-send "Key '$key' set."
@@ -107,7 +108,7 @@ case "${main_action}" in
         notify-send "Set cancelled: No key entered."
     fi
     ;;
-"Get")
+"Get a key")
     # List available keys using skate list -k
     selected_key=$(skate list -k | rofi -dmenu -theme-str "entry { placeholder: \"Select key to get...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
     if [ -n "$selected_key" ]; then
@@ -116,7 +117,7 @@ case "${main_action}" in
         notify-send "Value for key '$selected_key' copied to clipboard."
     fi
 ;;
-"List")
+"List keys")
     # List all key-value pairs
         skate_list_output=$(skate list)
     if [ -n "$skate_list_output" ]; then
@@ -125,7 +126,7 @@ case "${main_action}" in
         notify-send "Skate is empty."
     fi
     ;;
-"List Databases")
+"List databases")
     # List available databases
     skate_db_list_output=$(skate list-dbs)
     if [ -n "$skate_db_list_output" ]; then
