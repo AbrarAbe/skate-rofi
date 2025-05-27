@@ -16,7 +16,7 @@ decrypted_password=$(gpg --quiet --batch --no-tty --decrypt "$SKATE_PASSWORD_FIL
 
 # Check if decryption was successful
 if [ -z "$decrypted_password" ]; then
-    notify-send "Skate" "Failed to decrypt password file. Make sure gpg-agent is running and configured to handle passphrase prompting."
+    notify-send "skate-rofi" "Failed to decrypt password file. Make sure gpg-agent is running and configured to handle passphrase prompting."
     exit 1
 fi
 
@@ -83,10 +83,10 @@ else
     case "$command" in
         set|get|list|list-dbs)
             skate "$command" "$@"
-            notify-send "Executed: skate $command $@"
+            notify-send "skate-rofi" "Executed: skate $command $@"
             ;;
         *)
-            notify-send "Unknown command: $command"
+            notify-send "skate-rofi" "Unknown command: $command"
             echo "Unknown command: $command"
             exit 1
             ;;
@@ -103,12 +103,12 @@ case "${main_action}" in
         value=$(echo "" | rofi -dmenu -theme-str "entry { placeholder: \"Enter value...\";}" -theme-str "${r_scale}" -theme-str "${pass_override}" -theme-str "${value_override}" -config "${roconf}")
         if [ -n "$value" ]; then
             skate set "$key" "$value"
-            notify-send "Key '$key' set."
+            notify-send "skate-rofi" "Key '$key' set."
         else
-            notify-send "Set cancelled: No value entered."
+            notify-send "skate-rofi" "Set cancelled: No value entered."
         fi
     else
-        notify-send "Set cancelled: No key entered."
+        notify-send "skate-rofi" "Set cancelled: No key entered."
     fi
     ;;
 "Get a key")
@@ -117,7 +117,7 @@ case "${main_action}" in
     if [ -n "$selected_key" ]; then
         # Get the value for the selected key and copy to clipboard
         skate get "$selected_key" | wl-copy
-        notify-send "Value for key '$selected_key' copied to clipboard."
+        notify-send "skate-rofi" "Value for key '$selected_key' copied to clipboard."
     fi
 ;;
 "List keys")
@@ -126,7 +126,7 @@ case "${main_action}" in
     if [ -n "$skate_list_output" ]; then
         echo "$skate_list_output" | rofi -dmenu -theme-str "entry { placeholder: \"Skate List...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}"
     else
-        notify-send "Skate is empty."
+        notify-send "skate-rofi" "Skate is empty."
     fi
     ;;
 "List databases")
@@ -135,7 +135,7 @@ case "${main_action}" in
     if [ -n "$skate_db_list_output" ]; then
         echo "$skate_db_list_output" | rofi -dmenu -theme-str "entry { placeholder: \"Skate Databases...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}"
     else
-        notify-send "No databases found."
+        notify-send "skate-rofi" "No databases found."
     fi
     ;;
 "Process_Args")
@@ -148,10 +148,10 @@ case "${main_action}" in
     case "$command" in
         set|get|list|list-dbs)
             skate "$command" "$@"
-            notify-send "Executed: skate $command $@"
+            notify-send "skate-rofi" "Executed: skate $command $@"
             ;;
         *)
-            notify-send "Unknown command: $command"
+            notify-send "skate-rofi" "Unknown command: $command"
             echo "Unknown command: $command"
             exit 1
             ;;
