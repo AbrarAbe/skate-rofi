@@ -3,6 +3,10 @@
 # Set variables
 roconf="${HOME}/.config/rofi/skate.rasi"
 
+# IMPORTANT SECURITY NOTE: Storing the password directly in the script is INSECURE.
+# Consider using a more secure method to manage your password.
+SKATE_PASSWORD="your_secure_password_here" # *** REPLACE THIS WITH YOUR DESIRED PASSWORD ***
+
 # Set rofi scaling
 [[ "${rofiScale}" =~ ^[0-9]+$ ]] || rofiScale=10
 r_scale="configuration {font: \"JetBrainsMono Nerd Font 9\";}"
@@ -37,13 +41,37 @@ fi
 
 r_override="window{location:${x_pos} ${y_pos};anchor:${x_pos} ${y_pos};x-offset:${x_off}px;y-offset:${y_off}px;border:${hypr_width}px;border-radius:${wind_border}px;} wallbox{border-radius:${elem_border}px;} element{border-radius:${elem_border}px;}"
 
-# Show main menu if no arguments are passed
-if [ $# -eq 0 ]; then
-    main_action=$(echo -e "Set\\nGet\\nList\\nList Databases" | rofi -dmenu -theme-str "entry { placeholder: \"Skate - Choose action...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
-else
-    # Default action if an argument is passed (e.g., skate set key value)
-    main_action="Process_Args"
+# Password prompt using Rofi
+entered_password=$(echo "" | rofi -dmenu -password -theme-str "entry { placeholder: \"Enter password\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
+
+# Check if password is correct
+if [ "$entered_password" != "$SKATE_PASSWORD" ]; then
+    notify-send "Skate" "Incorrect password."
+    exit 1
 fi
+
+# Show main menu if no arguments are passed
+    if [ $# -eq 0 ]; then
+        main_action=$(echo -e "Set\\nGet\\nList\\nList Databases" | rofi -dmenu -theme-str "entry { placeholder: \"Skate - Choose action...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
+    else
+        # Default action if an argument is passed (e.g., skate set key value)
+        # Note: This assumes the first argument is the command and rest are arguments
+        # It might need more sophisticated parsing for complex use cases.
+        command="$1"
+        shift # remove command from arguments
+        case "$command" in
+            set|get|list|list-dbs)
+                skate "$command" "$@"
+                notify-send "Executed: skate $command $@"
+                ;;
+            *)
+                notify-send "Unknown command: $command"
+                echo "Unknown command: $command"
+                exit 1
+                ;;
+        esac
+        exit 0 # Exit after processing arguments
+    fi
 
 case "${main_action}" in
 "Set")
@@ -72,14 +100,14 @@ case "${main_action}" in
     fi
 ;;
 "List")
-# List all key-value pairs
-skate_list_output=$(skate list)
-if [ -n "$skate_list_output" ]; then
-    echo "$skate_list_output" | rofi -dmenu -theme-str "entry { placeholder: \"Skate List...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}"
-else
-    notify-send "Skate is empty."
-fi
-;;
+    # List all key-value pairs
+        skate_list_output=$(skate list)
+    if [ -n "$skate_list_output" ]; then
+        echo "$skate_list_output" | rofi -dmenu -theme-str "entry { placeholder: \"Skate List...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}"
+    else
+        notify-send "Skate is empty."
+    fi
+    ;;
 "List Databases")
     # List available databases
     skate_db_list_output=$(skate list-dbs)
@@ -94,7 +122,6 @@ fi
     # Example: skate.sh set key value
     # This simple implementation assumes the first argument is the command (set, get, list, list-dbs)
     # and the rest are arguments to that command.
-    # This might need more sophisticated parsing depending on desired argument handling.
     command="$1"
     shift # remove command from arguments
     case "$command" in
