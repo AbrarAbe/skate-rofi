@@ -12,7 +12,7 @@ if [ ! -f "$SKATE_PASSWORD_FILE" ]; then
     notify-send "Skate" "Error: GPG password file not found at $SKATE_PASSWORD_FILE."
     exit 1
 fi
-decrypted_password=$(gpg --quiet --batch --no-tty --decrypt "$SKATE_PASSWORD_FILE" 2>/dev/null)
+decrypted_password=$(gpg --quiet --batch --no-tty --decrypt "$SKATE_PASSWORD_FILE" 2>/dev/null | tr -d '[:space:]')
 
 # Check if decryption was successful
 if [ -z "$decrypted_password" ]; then
@@ -58,13 +58,16 @@ else
 fi
 
 r_override="window{location:${x_pos} ${y_pos};anchor:${x_pos} ${y_pos};x-offset:${x_off}px;y-offset:${y_off}px;border:${hypr_width}px;border-radius:${wind_border}px;} wallbox{border-radius:${elem_border}px;} element{border-radius:${elem_border}px;}"
+pass_override="window{height:6.6em;width:25%;location:${x_pos} ${y_pos};anchor:${x_pos} ${y_pos};x-offset:${x_off}px;y-offset:${y_off}px;border:${hypr_width}px;border-radius:${wind_border}px;} mainbox{children: [ "wallbox" ];} wallbox{expand:true;border-radius:${elem_border}px;} element{border-radius:${elem_border}px;} listbox{enabled:false;} element{enabled:false;}"
 
 # Password prompt using Rofi
-entered_password=$(echo "" | rofi -dmenu -password -theme-str "entry { placeholder: \"Enter password\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
+entered_password=$(echo "" | rofi -dmenu -password -theme-str "entry { placeholder: \"Enter password\";}" -theme-str "${r_scale}" -theme-str "${pass_override}" -config "${roconf}")
 
 # Check if password is correct
-if [ "$entered_password" != "$decrypted_password" ]; then
-    notify-send "Skate" "Incorrect password."
+if [ -z "$entered_password" ]; then
+    exit 0 # Script was likely cancelled
+elif [ "$entered_password" != "$decrypted_password" ]; then
+    notify-send "skate-rofi" "Incorrect password."
     exit 1
 fi
 
@@ -91,7 +94,7 @@ else
 fi
 
 case "${main_action}" in
-"Set")
+"Store a key")
     # Prompt for key
     key=$(echo "" | rofi -dmenu -theme-str "entry { placeholder: \"Enter key...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
     if [ -n "$key" ]; then
@@ -107,7 +110,7 @@ case "${main_action}" in
         notify-send "Set cancelled: No key entered."
     fi
     ;;
-"Get")
+"Get a key")
     # List available keys using skate list -k
     selected_key=$(skate list -k | rofi -dmenu -theme-str "entry { placeholder: \"Select key to get...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
     if [ -n "$selected_key" ]; then
@@ -116,7 +119,7 @@ case "${main_action}" in
         notify-send "Value for key '$selected_key' copied to clipboard."
     fi
 ;;
-"List")
+"List all key-value pairs")
     # List all key-value pairs
         skate_list_output=$(skate list)
     if [ -n "$skate_list_output" ]; then
