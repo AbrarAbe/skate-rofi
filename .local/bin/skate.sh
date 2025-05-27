@@ -1,16 +1,34 @@
 #!/usr/bin/env sh
 
 # Set variables
+# Path to the GPG encrypted password file
+SKATE_PASSWORD_FILE="your_gpg_encrypted_password.gpg"
 roconf="${HOME}/.config/rofi/skate.rasi"
 
-# IMPORTANT SECURITY NOTE: Storing the password directly in the script is INSECURE.
-# Consider using a more secure method to manage your password.
-SKATE_PASSWORD="your_secure_password_here" # *** REPLACE THIS WITH YOUR DESIRED PASSWORD ***
+# Decrypt the password from the GPG file
+# Use --batch and --no-tty to prevent gpg from trying to prompt for passphrase
+# Assumes gpg-agent is running and configured to handle passphrase prompting (e.g., via pinentry)
+if [ ! -f "$SKATE_PASSWORD_FILE" ]; then
+    notify-send "Skate" "Error: GPG password file not found at $SKATE_PASSWORD_FILE."
+    exit 1
+fi
+decrypted_password=$(gpg --quiet --batch --no-tty --decrypt "$SKATE_PASSWORD_FILE" 2>/dev/null)
+
+# Check if decryption was successful
+if [ -z "$decrypted_password" ]; then
+    notify-send "Skate" "Failed to decrypt password file. Make sure gpg-agent is running and configured to handle passphrase prompting."
+    exit 1
+fi
+
+# Set default values for Rofi and Hyprland variables
+rofiScale=10
+hypr_border=2
+hypr_width=3
 
 # Set rofi scaling
 [[ "${rofiScale}" =~ ^[0-9]+$ ]] || rofiScale=10
 r_scale="configuration {font: \"JetBrainsMono Nerd Font 9\";}"
-wind_border=$((hypr_border * 3 / 2))
+wind_border=$((hypr_border * 3))
 elem_border=$([ $hypr_border -eq 0 ] && echo "5" || echo $hypr_border)
 
 # Evaluate spawn position
@@ -45,33 +63,32 @@ r_override="window{location:${x_pos} ${y_pos};anchor:${x_pos} ${y_pos};x-offset:
 entered_password=$(echo "" | rofi -dmenu -password -theme-str "entry { placeholder: \"Enter password\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
 
 # Check if password is correct
-if [ "$entered_password" != "$SKATE_PASSWORD" ]; then
+if [ "$entered_password" != "$decrypted_password" ]; then
     notify-send "Skate" "Incorrect password."
     exit 1
 fi
 
 # Show main menu if no arguments are passed
-    if [ $# -eq 0 ]; then
-        main_action=$(echo -e "Set\\nGet\\nList\\nList Databases" | rofi -dmenu -theme-str "entry { placeholder: \"Skate - Choose action...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
-    else
-        # Default action if an argument is passed (e.g., skate set key value)
-        # Note: This assumes the first argument is the command and rest are arguments
-        # It might need more sophisticated parsing for complex use cases.
-        command="$1"
-        shift # remove command from arguments
-        case "$command" in
-            set|get|list|list-dbs)
-                skate "$command" "$@"
-                notify-send "Executed: skate $command $@"
-                ;;
-            *)
-                notify-send "Unknown command: $command"
-                echo "Unknown command: $command"
-                exit 1
-                ;;
-        esac
-        exit 0 # Exit after processing arguments
-    fi
+if [ $# -eq 0 ]; then
+main_action=$(echo -e "Set\\nGet\\nList\\nList Databases" | rofi -dmenu -theme-str "entry { placeholder: \"Skate - Choose action...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
+else
+    # Default action if an argument is passed (e.g., skate set key value)
+    # Note: This assumes the first argument is the command and rest are arguments
+    command="$1"
+    shift # remove command from arguments
+    case "$command" in
+        set|get|list|list-dbs)
+            skate "$command" "$@"
+            notify-send "Executed: skate $command $@"
+            ;;
+        *)
+            notify-send "Unknown command: $command"
+            echo "Unknown command: $command"
+            exit 1
+            ;;
+    esac
+    exit 0 # Exit after processing arguments
+fi
 
 case "${main_action}" in
 "Set")
