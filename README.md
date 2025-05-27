@@ -21,6 +21,7 @@ This script provides a convenient way to manage your `skate` data using Rofi, a 
 2.  Copy the `.local/bin/skate.sh` script to a location in your `$PATH` (e.g., `~/.local/bin/`).
 3.  Make the script executable: `chmod +x ~/.local/bin/skate.sh`.
 4.  Copy the `.config/rofi/skate.rasi` file to `~/.config/rofi/`.
+5. Alternatively, you can clone the repository to your home directory.
 
 ## Configuration
 
@@ -32,6 +33,18 @@ This script provides a convenient way to manage your `skate` data using Rofi, a 
     *   Update the `SKATE_PASSWORD_FILE` variable in `skate.sh` with the path to your GPG encrypted file.
 2.  **Rofi Theme:**
     *   The script uses `~/.config/rofi/skate.rasi` for its Rofi theme. Customize this file to match your desktop.
+
+## Hyprdots Configuration
+
+If you're using [Hyprdots](https://github.com/prasanthrangan/hyprdots), Hyprdots-specific configurations are available in the `hyprdots` branch of this repository.
+
+To use the Hyprdots configuration:
+
+*  **Clone the branch:** `git clone https://AbrarAbe/skate-rofi -b hyprdots --single-branch`
+
+Alternatively, if you already have the repository cloned:
+
+*  **Checkout the `hyprdots` branch:** `git checkout hyprdots`
 
 ## Usage
 
