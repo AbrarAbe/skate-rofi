@@ -2,6 +2,9 @@
 
 A Rofi-based interface for interacting with the `skate` key-value store.
 
+![bitmap](https://github.com/user-attachments/assets/d06283be-bcfa-406e-98f0-822b6a4158ab)
+
+
 ## Description
 
 This script provides a convenient way to manage your `skate` data using Rofi, a versatile window switcher and application launcher. It allows you to set, get, list, and manage databases within your `skate` store through a user-friendly menu. This project is inspired by the simplicity of `skate` and the flexibility of `rofi`.
