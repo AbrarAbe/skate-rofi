@@ -55,6 +55,8 @@ else
 fi
 
 r_override="window{location:${x_pos} ${y_pos};anchor:${x_pos} ${y_pos};x-offset:${x_off}px;y-offset:${y_off}px;border:${hypr_width}px;border-radius:${wind_border}px;} wallbox{border-radius:${elem_border}px;} element{border-radius:${elem_border}px;}"
+l_override="listview{lines:8;}"
+confirm_override="window{width:30%;location:${x_pos} ${y_pos};anchor:${x_pos} ${y_pos};x-offset:${x_off}px;y-offset:${y_off}px;border:${hypr_width}px;border-radius:${wind_border}px;} wallbox{border-radius:${elem_border}px;} listbox{children:["listview"];} listview{columns:2;lines:1;} element{border-radius:${elem_border}px;}"
 pass_override="window{height:6.6em;width:25%;location:${x_pos} ${y_pos};anchor:${x_pos} ${y_pos};x-offset:${x_off}px;y-offset:${y_off}px;border:${hypr_width}px;border-radius:${wind_border}px;} mainbox{children: [ "wallbox" ];} wallbox{expand:true;border-radius:${elem_border}px;} element{border-radius:${elem_border}px;} listbox{enabled:false;} element{enabled:false;}"
 value_override="window{width:50%;}"
 
@@ -71,14 +73,14 @@ fi
 
 # Show main menu if no arguments are passed
 if [ $# -eq 0 ]; then
-main_action=$(echo -e "Store a key\\nGet a key\\nList keys\\nList databases" | rofi -dmenu -theme-str "entry { placeholder: \"Skate - Choose action...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
+main_action=$(echo -e "Store a key\\nGet a key\\nDelete a key\\nList keys\\nList databases" | rofi -dmenu -theme-str "entry { placeholder: \"Skate - Choose action...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
 else
     # Default action if an argument is passed (e.g., skate set key value)
     # Note: This assumes the first argument is the command and rest are arguments
     command="$1"
     shift # remove command from arguments
     case "$command" in
-        set|get|list|list-dbs)
+        set|get|delete|list|list-dbs)
             skate "$command" "$@"
             notify-send "skate-rofi" "Executed: skate $command $@"
             ;;
@@ -100,30 +102,45 @@ case "${main_action}" in
         value=$(echo "" | rofi -dmenu -theme-str "entry { placeholder: \"Enter value...\";}" -theme-str "${r_scale}" -theme-str "${pass_override}" -theme-str "${value_override}" -config "${roconf}")
         if [ -n "$value" ]; then
             skate set "$key" "$value"
-            notify-send "skate-rofi" "Key '$key' set."
+            notify-send "skate-rofi" "Key '$key' set." --icon="lock"
         else
-            notify-send "skate-rofi" "Set cancelled: No value entered."
+            notify-send "skate-rofi" "Set cancelled: No value entered." --icon="lock"
         fi
     else
-        notify-send "skate-rofi" "Set cancelled: No key entered."
+        notify-send "skate-rofi" "Set cancelled: No key entered." --icon="lock"
     fi
     ;;
 "Get a key")
     # List available keys using skate list -k
-    selected_key=$(skate list -k | rofi -dmenu -theme-str "entry { placeholder: \"Select key to get...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}")
+    selected_key=$(skate list -k | rofi -dmenu -theme-str "entry { placeholder: \"Select key to get...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -theme-str "${l_override}" -config "${roconf}")
     if [ -n "$selected_key" ]; then
         # Get the value for the selected key and copy to clipboard
         skate get "$selected_key" | wl-copy
-        notify-send "skate-rofi" "Value for key '$selected_key' copied to clipboard."
+        notify-send "skate-rofi" "Value for key '$selected_key' copied to clipboard." --icon="lock"
+    fi
+;;
+"Delete a key")
+    # List available keys using skate list -k
+    selected_key=$(skate list -k | rofi -dmenu -theme-str "entry { placeholder: \"Select key to delete...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -theme-str "${l_override}" -config "${roconf}")
+    if [ -n "$selected_key" ]; then
+        # Confirm deletion with user
+        confirm=$(echo -e "Yes\nNo" | rofi -dmenu -theme-str "entry { placeholder: \"Delete '$selected_key'?\";}" -theme-str "${r_scale}" -theme-str "${confirm_override}" -config "${roconf}" -selected-row 1)
+        if [ "$confirm" = "Yes" ]; then
+            skate delete "$selected_key"
+            notify-send "skate-rofi" "'$selected_key' key deleted." --icon="trash-empty"
+        else
+	    exit
+            #notify-send "skate-rofi" "Deletion of '$selected_key' cancelled." --icon="lock"
+        fi
     fi
 ;;
 "List keys")
     # List all key-value pairs
         skate_list_output=$(skate list)
     if [ -n "$skate_list_output" ]; then
-        echo "$skate_list_output" | rofi -dmenu -theme-str "entry { placeholder: \"Skate List...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}"
+        echo "$skate_list_output" | rofi -dmenu -theme-str "entry { placeholder: \"Skate List...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -theme-str "${l_override}" -config "${roconf}"
     else
-        notify-send "skate-rofi" "Skate is empty."
+        notify-send "skate-rofi" "Skate is empty." --icon="lock"
     fi
     ;;
 "List databases")
@@ -132,7 +149,7 @@ case "${main_action}" in
     if [ -n "$skate_db_list_output" ]; then
         echo "$skate_db_list_output" | rofi -dmenu -theme-str "entry { placeholder: \"Skate Databases...\";}" -theme-str "${r_scale}" -theme-str "${r_override}" -config "${roconf}"
     else
-        notify-send "skate-rofi" "No databases found."
+        notify-send "skate-rofi" "No databases found." --icon="lock"
     fi
     ;;
 "Process_Args")
@@ -143,12 +160,12 @@ case "${main_action}" in
     command="$1"
     shift # remove command from arguments
     case "$command" in
-        set|get|list|list-dbs)
+        set|get|delete|list|list-dbs)
             skate "$command" "$@"
-            notify-send "skate-rofi" "Executed: skate $command $@"
+            notify-send "skate-rofi" "Executed: skate $command $@" --icon="lock"
             ;;
         *)
-            notify-send "skate-rofi" "Unknown command: $command"
+            notify-send "skate-rofi" "Unknown command: $command" --icon="lock"
             echo "Unknown command: $command"
             exit 1
             ;;

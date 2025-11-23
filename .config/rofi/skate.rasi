@@ -10,8 +10,7 @@ configuration {
 
 // Main //
 window {
-    height:                      56%;
-    width:                       40%;
+    width:                       30%;
     transparency:                "real";
     fullscreen:                  false;
     enabled:                     true;
@@ -64,7 +63,6 @@ entry {
     background-color:            transparent;
 }
 
-
 // Lists //
 listbox {
     spacing:                     0em;
@@ -77,7 +75,7 @@ listview {
     enabled:                     true;
     padding:                     0.5em;
     columns:                     1;
-    lines:                       8; 
+    lines:                       5;
     cycle:                       true;
     fixed-height:                true;
     fixed-columns:               false;
